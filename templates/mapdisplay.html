@@ -1,0 +1,272 @@
+<html>
+<head>
+<meta name="viewport" content="initial-scale=1.0, user-scalable=no" />
+<meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+<title>Google Maps - gmplot</title>
+
+<script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/OverlappingMarkerSpiderfier/1.0.3/oms.min.js"></script>
+<script type="text/javascript" src="https://maps.googleapis.com/maps/api/js?libraries=visualization&key=AIzaSyAO-r75d8IVw3xwou82zXbABZnrNUFSKGY"></script>
+<script type="text/javascript">
+    var map;
+    function parseIPJson() {
+        var ipStrings = $(tracert_json).val();
+        console.log(ipStrings);
+        var text = JSON.parse(ipStrings);
+        let iplist = [text.src_addr];
+        for (let hop in text.result) {
+            var hopinfo = text.result[hop]
+            if (hopinfo.result[0].from === undefined){continue;}
+            iplist.push((hopinfo.result[0]).from);
+        }
+        let iptext = iplist.toString();
+        console.log(iptext);
+
+        doSearch(iptext);
+    }
+    function download(name, type) {
+        var a = document.getElementById("a");
+        var text = $(tracert_raw).val();
+        var file = new Blob([convertToJSON(text)], {type: type});
+        a.href = URL.createObjectURL(file);
+        a.download = name;
+        a.click();
+    }
+    
+    function convertToJSON(text){
+        const hopArray = text.split(/\r?\n/);
+        let parsedHopArray = [];
+        for (let hop in hopArray) {
+            let line = hopArray[hop];
+            if (line === ''){
+                continue
+            }
+            const elements = line.split("  ");
+            if (elements[0]===''){
+                elements.splice(0, 1);
+            }
+            parsedHopArray.push(elements);
+        }
+        var TracertJsonString = JSON.stringify(parsedHopArray);
+        return TracertJsonString;
+
+    }
+
+    function parseIPRaw() {
+        var ipStrings = $(tracert_raw).val();
+        const ipArray = ipStrings.split(/\r?\n/);
+        let ips = ''
+        for (let index in ipArray) {
+            let line = ipArray[index];
+            if (line.substring(0,4)=='    '){
+                continue
+            }
+            let ip = '';
+            let position1 = line.search("\\(");
+            let position2 = line.search("\\)");
+            let currentPosition = position1 + 1;
+            while (currentPosition<position2){
+                ip = ip + line[currentPosition];
+                currentPosition = currentPosition + 1;
+            }
+            if (position1!=-1){
+                ips = ips + ip + ',';
+            }
+        }
+        ips = ips.substring(0, ips.length-1);
+        doSearch(ips);
+    }
+    function doSearch(ipArray) {
+        // var ipStrings = $(tracert_json).val();
+        // var ipArray = parseIPJson(ipStrings);
+        // alert(ipArray)
+        // alert($(lname).val());
+
+        $.ajax({
+            url: "/getip",
+            type: "POST",
+            data:{
+                ipaddress: ipArray,
+                }, 
+            success: function(data){
+
+                alert(data);
+                data = JSON.parse(data);
+
+                // locs = (data.split('####')[0]).split(';');
+                // asnums = (data.split('####')[1]).split(';');
+                // methods = (data.split('####')[2]).split(';');
+                // ipadrs = (data.split('####')[3]).split(';');
+                // hostnames = (data.split('####')[4]).split(';');
+                // console.log(asnums);
+                // console.log(locs);
+
+                var locations =  new Array();  
+
+                // for (let ip in data) {
+                //     console.log(data[ip].loc)
+                //     if (typeof data[ip].loc === 'undefined'){
+                //         continue;
+                //     }
+                //     var loc = data[ip].loc.split(",");
+                //     var location = new Object();
+                //     location['lat'] = parseFloat(loc[0]);
+                //     location['lng'] = parseFloat(loc[1]);
+                //     console.log(location);
+                //     locations.push(location)
+                // }
+                for (let ip in data) {
+                    var location = new Object();
+                    var loc = (data[ip]['coordinates']).split(',');
+                    location['lat'] = parseFloat(loc[0]);
+                    location['lng'] = parseFloat(loc[1]);
+                    locations.push(location);
+                }
+                // for (let coord in locs) {
+                //     var location = new Object();
+                //     var loc = locs[coord].split(",");
+                //     console.log(loc);
+                //     location['lat'] = parseFloat(loc[0]);
+                //     location['lng'] = parseFloat(loc[1]);
+                //     locations.push(location);
+                // }
+
+                console.log(locations);
+
+                // const flightPlanCoordinates = [
+                // { lat: 37.772, lng: -122.214 },
+                // { lat: 21.291, lng: -157.821 },
+                // { lat: -18.142, lng: 178.431 },
+                // { lat: -27.467, lng: 153.027 },
+                // ];
+                const flightPath = new google.maps.Polyline({
+                    path: locations,
+                    geodesic: true,
+                    strokeColor: "#FF0000",
+                    strokeOpacity: 1.0,
+                    strokeWeight: 2,
+                });
+
+                // const infowindow = new google.maps.InfoWindow({
+                //     content: "hi",
+                //     ariaLabel: "Uluru",
+                // });
+                
+                // const uluru = { lat: -25.344, lng: 131.031 };
+                // const marker = new google.maps.Marker({
+                //     position: uluru,
+                //     map: map,
+                // });
+                // marker.addListener("click", () => {
+                //     infowindow.open({
+                //         anchor: marker,
+                //         map,
+                //     });
+                // });
+                const oms = new OverlappingMarkerSpiderfier(map, {
+                        markersWontMove: true,
+                        markersWontHide: true,
+                        basicFormatEvents: true
+                    });
+                var index = 0
+                const asColorMap = new Map();
+
+                for (let ipadr in data) {
+                    const contentstring = data[ipadr]['ip'] + "<br>AS Number: " + data[ipadr]['asnum'] + "<br>Method: " + data[ipadr]['method'] + "<br>Hostname: " + data[ipadr]['hostname']
+                    if (!asColorMap.has(data[ipadr]['asnum'])){
+                        asColorMap.set(data[ipadr]['asnum'], Math.floor(Math.random() * (0xFFFFFF + 1)))
+                    }
+                    const infowindow = new google.maps.InfoWindow({
+                        content: contentstring
+                    });
+                    const colorHex = asColorMap.get(data[ipadr]['asnum']).toString(16);
+
+                    const marker = new google.maps.Marker({
+                        position: locations[index],
+                        map: map,
+                        label: String(index + 1),
+                        icon: 'http://chart.apis.google.com/chart?chst=d_map_pin_letter&chld=|'+colorHex+'|000000',
+                    });
+                    marker.addListener("spider_click",()=> {
+                        infowindow.open({
+                            anchor: marker,
+                            map,
+                        })
+                    });
+                    oms.addMarker(marker);
+                    
+                    var index = index + 1
+                }
+
+
+
+
+                // for (let info in locs) {
+                //     console.log(locations[index]);
+                //     // const contentstring = "location number "+(index+1)+"<br>city: " + data[info].city +"<br>country: "+ data[info].country +"<br>hostname: "+ data[info].hostname + "<br>ip: "+data[info].ip + "<br>loc: "+data[info].loc+"<br>org: "+data[info].org+"<br>postal: "+data[info].postal+"<br>region: "+data[info].region+"<br>timezone: "+data[info].timezone
+                //     // const infowindow = new google.maps.InfoWindow({
+                //     //     content: contentstring
+                //     // })
+                //     const contentstring = ipadrs[index] + "<br>AS Number: " + asnums[index] + "<br>Method: " + methods[index] + "<br>Hostname: " + hostnames[index]
+                //     if (!asColorMap.has(asnums[index])){
+                //         asColorMap.set(asnums[index], Math.floor(Math.random() * (0xFFFFFF + 1)))
+                //     }
+                //     const infowindow = new google.maps.InfoWindow({
+                //         content: contentstring
+                //     });
+                //     const colorHex = asColorMap.get(asnums[index]).toString(16);
+
+                //     const marker = new google.maps.Marker({
+                //         position: locations[index],
+                //         map: map,
+                //         label: String(index + 1),
+                //         icon: 'http://chart.apis.google.com/chart?chst=d_map_pin_letter&chld=|'+colorHex+'|000000',
+                //     });
+                //     marker.addListener("spider_click",()=> {
+                //         infowindow.open({
+                //             anchor: marker,
+                //             map,
+                //         })
+                //     });
+                //     oms.addMarker(marker);
+                    
+                //     var index = index + 1
+                // }
+                flightPath.setMap(map);
+            }
+        });
+    }
+
+    function initialize() {
+        map = new google.maps.Map(document.getElementById("map_canvas"), {
+            zoom: 3,
+            center: new google.maps.LatLng(35.994033, -78.898619)
+        });
+
+        
+
+    }
+</script>
+</head>
+<body style="margin:0px; padding:0px;" onload="initialize()">
+<section style="margin:20px">
+    <table><tr>
+    <td><text>JSON Format:</text><br>
+    <textarea id="tracert_json" name="tracert_json" rows="4" cols="50">{"fw":5020,"mver":"2.2.1","lts":67,"endtime":1641013316,"dst_name":"2001:503:c27::2:30","dst_addr":"2001:503:c27::2:30","src_addr":"2001:19f0:7001:22c8:5400:ff:fe59:8d4f","proto":"UDP","af":6,"size":40,"paris_id":4,"result":[{"hop":1,"result":[{"x":"*"},{"x":"*"},{"x":"*"}]},{"hop":2,"result":[{"from":"2001:19f0:7000:c640::1","ttl":63,"rtt":0.581,"size":88},{"from":"2001:19f0:7000:c640::1","ttl":63,"rtt":0.315,"size":88},{"from":"2001:19f0:7000:c640::1","ttl":63,"rtt":0.835,"size":88}]},{"hop":3,"result":[{"from":"2001:19f0:fc00::a47:111","ttl":62,"rtt":1.369,"size":88},{"from":"2001:19f0:fc00::a47:111","ttl":62,"rtt":1.05,"size":88},{"from":"2001:19f0:fc00::a47:111","ttl":62,"rtt":16.589,"size":88}]},{"hop":4,"result":[{"x":"*"},{"x":"*"},{"x":"*"}]},{"hop":5,"result":[{"x":"*"},{"x":"*"},{"x":"*"}]},{"hop":6,"result":[{"from":"2001:470:0:622::1","ttl":60,"rtt":0.61,"size":88},{"from":"2001:470:0:622::1","ttl":60,"rtt":0.732,"size":88},{"from":"2001:470:0:622::1","ttl":60,"rtt":0.418,"size":88}]},{"hop":7,"result":[{"from":"2001:470:0:3f0::1","ttl":59,"rtt":78.0,"size":88},{"from":"2001:470:0:3f0::1","ttl":59,"rtt":88.83,"size":88},{"from":"2001:470:0:3f0::1","ttl":59,"rtt":86.187,"size":88}]},{"hop":8,"result":[{"from":"2001:470:1:35c::2","ttl":54,"rtt":85.734,"size":88},{"from":"2001:470:1:35c::2","ttl":54,"rtt":71.106,"size":88},{"from":"2001:470:1:35c::2","ttl":54,"rtt":71.716,"size":88}]},{"hop":9,"result":[{"from":"2001:d98:e:4::24","ttl":55,"rtt":67.868,"size":88},{"from":"2001:d98:e:4::24","ttl":55,"rtt":67.937,"size":88},{"from":"2001:d98:e:4::24","ttl":55,"rtt":67.94,"size":88}]},{"hop":10,"result":[{"x":"*"},{"x":"*"},{"x":"*"}]},{"hop":11,"result":[{"x":"*"},{"x":"*"},{"x":"*"}]},{"hop":12,"result":[{"x":"*"},{"x":"*"},{"x":"*"}]},{"hop":13,"result":[{"x":"*"},{"x":"*"},{"x":"*"}]},{"hop":14,"result":[{"x":"*"},{"x":"*"},{"x":"*"}]},{"hop":255,"result":[{"x":"*"},{"x":"*"},{"x":"*"}]}],"msm_id":6016,"prb_id":1001877,"timestamp":1641013207,"msm_name":"Traceroute","from":"2001:19f0:7001:22c8:5400:ff:fe59:8d4f","type":"traceroute","stored_timestamp":1641013446}</textarea>
+    <br><button id="searchip_json" onclick="parseIPJson()" value="json">Display IP route</button></td>
+    <td><text>Raw Traceroute Format:</text><br>
+    <textarea id="tracert_raw" name="tracert_raw" rows="4" cols="50"> 1  176.587.89.163 (176.58.89.163)  4.344 ms  3.350 ms  4.516 ms
+
+ 2  176.58.90.161 (176.58.90.161)  3.066 ms  73.962 ms  3.082 ms
+
+ 3  104.225.12.95 (104.225.12.95)  3.865 ms  2.880 ms  5.561 ms
+
+ 4  208.111.34.237 (208.111.34.237)  5.500 ms  5.042 ms  5.534 ms</textarea>
+    <br><button id="searchip_raw" onclick="parseIPRaw()" value="raw">Display IP route</button>
+    <a hidden href="" id="a">click here to download your file</a>
+    <button onclick="download('myfilename.txt', 'text/plain')">Save JSON file</button></tr></table></td>
+
+</section>
+    <div id="map_canvas" style="width: 100%; height: 100%;" />
+</body>
+</html>
