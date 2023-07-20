@@ -9,6 +9,7 @@ import pyasn
 from flask import Flask, request, render_template
 from collections import OrderedDict
 from reversedns import *
+from util import *
 asndb = pyasn.pyasn('static/asnum.dat')
 
 access_token = 'dab5ee35a6b59c'
@@ -28,8 +29,12 @@ def hello():
 # a = finalLocation('176.58.90.161')
 # print(a)
 
+x = readNodes('test.nodes.txt')[0]
+
+
 @app.route('/getip',methods = ['POST', 'GET'])
 def postRequest():
+
     ips = (request.form['ipaddress']).split(',')
     print(request.form['ipaddress'])
 
@@ -37,37 +42,34 @@ def postRequest():
     
 
     for ipadr in ips:
+        
         ipaddressinfo = {}
         asnum = asndb.lookup(ipadr)[0]
         ipaddressinfo['asnum'] = asnum
         try:
             a = socket.gethostbyaddr(ipadr)[0]
             ipaddressinfo['hostname'] = a
-            # hostnamelist = hostnamelist + a + ';'
             b = findRegexAndPlan(a)
             ipaddressinfo['coordinates'] = b[0]+','+b[1]
-            # finalLoc = b[0]+','+b[1]
-            # coordlist = coordlist + finalLoc + ';'
             ipaddressinfo['method'] = 'regex'
-            # methodlist = methodlist + 'regex;'
             ipaddressinfo['ip'] = ipadr
-            # iplist = iplist + ipadr + ';'
             data[ipadr] = ipaddressinfo
         except Exception as e: 
             print(e)
             try: 
                 details = handler.getDetails(ipadr)
                 ipaddressinfo['coordinates'] = details.loc
-                # finalLoc = b[0]+','+b[1]
-                # coordlist = coordlist + finalLoc + ';'
                 ipaddressinfo['method'] = 'ipinfo'
-                # methodlist = methodlist + 'regex;'
                 ipaddressinfo['ip'] = ipadr
-                # iplist = iplist + ipadr + ';'
                 data[ipadr] = ipaddressinfo
-            except: 
-                continue
-    # return coordlist[:-1]+'####'+asnumlist+'####'+methodlist+'####'+ipadresses+'####'+hostnames
+            except Exception as e: 
+                print(e)
+        try:
+            nodeid = determineNodeOfIP(ipadr,x)
+            ipaddressinfo['nodeid'] = nodeid
+        except Exception as e:
+            print(e)
+
     print("____________________________")
     print(json.dumps(data))
     return json.dumps(data)

@@ -63,7 +63,7 @@ for i in range(10):
 
     for tracert in traceroutes:
         try:
-            ip = (((tracert['result'][-1])['result'][0])['from'])
+            ip = (((tracert['result'][-2])['result'][0])['from'])
             info = getData(ip)
             print(info)
         except:

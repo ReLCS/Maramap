@@ -77,10 +77,6 @@
         doSearch(ips);
     }
     function doSearch(ipArray) {
-        // var ipStrings = $(tracert_json).val();
-        // var ipArray = parseIPJson(ipStrings);
-        // alert(ipArray)
-        // alert($(lname).val());
 
         $.ajax({
             url: "/getip",
@@ -93,76 +89,66 @@
                 alert(data);
                 data = JSON.parse(data);
 
-                // locs = (data.split('####')[0]).split(';');
-                // asnums = (data.split('####')[1]).split(';');
-                // methods = (data.split('####')[2]).split(';');
-                // ipadrs = (data.split('####')[3]).split(';');
-                // hostnames = (data.split('####')[4]).split(';');
-                // console.log(asnums);
-                // console.log(locs);
+                var locations =  new Array();
+                var nodes = new Array();
 
-                var locations =  new Array();  
-
-                // for (let ip in data) {
-                //     console.log(data[ip].loc)
-                //     if (typeof data[ip].loc === 'undefined'){
-                //         continue;
-                //     }
-                //     var loc = data[ip].loc.split(",");
-                //     var location = new Object();
-                //     location['lat'] = parseFloat(loc[0]);
-                //     location['lng'] = parseFloat(loc[1]);
-                //     console.log(location);
-                //     locations.push(location)
-                // }
                 for (let ip in data) {
                     var location = new Object();
                     var loc = (data[ip]['coordinates']).split(',');
                     location['lat'] = parseFloat(loc[0]);
                     location['lng'] = parseFloat(loc[1]);
-                    locations.push(location);
+                    locations[ip] = location;
+
+                    // nodes.push(data[ip]['nodeid']);
                 }
-                // for (let coord in locs) {
-                //     var location = new Object();
-                //     var loc = locs[coord].split(",");
-                //     console.log(loc);
-                //     location['lat'] = parseFloat(loc[0]);
-                //     location['lng'] = parseFloat(loc[1]);
-                //     locations.push(location);
-                // }
 
                 console.log(locations);
 
-                // const flightPlanCoordinates = [
-                // { lat: 37.772, lng: -122.214 },
-                // { lat: 21.291, lng: -157.821 },
-                // { lat: -18.142, lng: 178.431 },
-                // { lat: -27.467, lng: 153.027 },
-                // ];
                 const flightPath = new google.maps.Polyline({
-                    path: locations,
+                    path: Object.values(locations),
                     geodesic: true,
                     strokeColor: "#FF0000",
                     strokeOpacity: 1.0,
                     strokeWeight: 2,
                 });
 
-                // const infowindow = new google.maps.InfoWindow({
-                //     content: "hi",
-                //     ariaLabel: "Uluru",
-                // });
-                
-                // const uluru = { lat: -25.344, lng: 131.031 };
-                // const marker = new google.maps.Marker({
-                //     position: uluru,
-                //     map: map,
-                // });
-                // marker.addListener("click", () => {
-                //     infowindow.open({
-                //         anchor: marker,
-                //         map,
-                //     });
-                // });
+                function findDuplicates(arr) {
+                    const set = new Set();
+                    const duplicates = [];
+
+                    for (const item of arr) {
+                        if (set.has(item)) {
+                        duplicates.push(item);
+                        } else {
+                        set.add(item);
+                        }
+                    }
+                    return duplicates, set;
+                }
+
+                // var duplicateNodes = findDuplicates(nodes)[0]
+                // var nonDupNodes = findDuplicates(nodes)[1]
+                // console.log(duplicateNodes)
+
+
+                var nodeIDs = new Array();
+                var nodeData = new Array();
+
+                for (let ipadr in data) {
+                    
+                    if ((Object.values(nodeIDs)).includes(data[ipadr]['nodeid'])==true){
+                        currentContentStr = nodeData[Object.keys(nodeData)[Object.values(nodeIDs).indexOf(data[ipadr]['nodeid'])]];
+                        nodeData[Object.keys(nodeData)[Object.values(nodeIDs).indexOf(data[ipadr]['nodeid'])]] = currentContentStr + "<br><br>"+ data[ipadr]['ip'] + "<br>AS Number: " + data[ipadr]['asnum'] + "<br>Method: " + data[ipadr]['method'] + "<br>Hostname: " + data[ipadr]['hostname'];
+                        
+                    }
+                    else{
+                        const contentstring = data[ipadr]['ip'] + "<br>AS Number: " + data[ipadr]['asnum'] + "<br>Method: " + data[ipadr]['method'] + "<br>Hostname: " + data[ipadr]['hostname'];
+                        nodeData[ipadr] = contentstring;
+                        nodeIDs[ipadr] = data[ipadr]['nodeid'];
+                    }
+                }
+                console.log(nodeData);
+
                 const oms = new OverlappingMarkerSpiderfier(map, {
                         markersWontMove: true,
                         markersWontHide: true,
@@ -171,18 +157,22 @@
                 var index = 0
                 const asColorMap = new Map();
 
-                for (let ipadr in data) {
-                    const contentstring = data[ipadr]['ip'] + "<br>AS Number: " + data[ipadr]['asnum'] + "<br>Method: " + data[ipadr]['method'] + "<br>Hostname: " + data[ipadr]['hostname']
+                for (let ipadr in nodeData) {
+                    // if (nodeIDsUsed.includes(data[ipadr]['nodeid'])==true){
+                        
+                    // }
+                    // nodeIDsUsed.push(data[ipadr]['nodeid']);
+                    // const contentstring = data[ipadr]['ip'] + "<br>AS Number: " + data[ipadr]['asnum'] + "<br>Method: " + data[ipadr]['method'] + "<br>Hostname: " + data[ipadr]['hostname']
                     if (!asColorMap.has(data[ipadr]['asnum'])){
                         asColorMap.set(data[ipadr]['asnum'], Math.floor(Math.random() * (0xFFFFFF + 1)))
                     }
                     const infowindow = new google.maps.InfoWindow({
-                        content: contentstring
+                        content: nodeData[ipadr]
                     });
                     const colorHex = asColorMap.get(data[ipadr]['asnum']).toString(16);
 
                     const marker = new google.maps.Marker({
-                        position: locations[index],
+                        position: locations[ipadr],
                         map: map,
                         label: String(index + 1),
                         icon: 'http://chart.apis.google.com/chart?chst=d_map_pin_letter&chld=|'+colorHex+'|000000',
