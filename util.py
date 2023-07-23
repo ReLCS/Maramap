@@ -54,11 +54,11 @@ def readNodes(filename):
         iface_node = {}
         for line in reader(filename):
             node, ifaces = splitColon(line)
-            nid = node.split()[1]
-            ifaces = ifaces.split()
+            nid = int(node.split()[1][1:])
+            ifaces = [i.replace(".","") for i in ifaces.split()]
             node_ifaces[nid] = ifaces
             for iface in ifaces:
-                iface_node[iface] = nid
+                iface_node[iface.replace(".","")] = nid
         return (node_ifaces, iface_node)
     return readFromCache("nodes.pickle", lambda: f(filename))
 
@@ -135,13 +135,14 @@ def readTraceroute(filename, status):
     print("read traceroute finished")
     return traces
 
-x = readNodes('static/midar-iff.nodes')[0]
-# print(x)
+# x = readNodes('static/midar-iff.nodes')[0]
+x = readNodes('test.nodes.txt')[0]
+print(x)
 
 def determineNodeOfIP(ip,x):
     for node in x:
         for ipadr in x[node]:
-            if ip == ipadr:
+            if ip.replace(".","") == ipadr:
                 return node
 
 a = determineNodeOfIP('187.253.253.101',x)
