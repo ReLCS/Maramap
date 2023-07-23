@@ -135,9 +135,9 @@ def readTraceroute(filename, status):
     print("read traceroute finished")
     return traces
 
-# x = readNodes('static/midar-iff.nodes')[0]
-x = readNodes('test.nodes.txt')[0]
-print(x)
+x = readNodes('static/midar-iff.nodes')[0]
+# x = readNodes('test.nodes.txt')[0]
+# print(x)
 
 def determineNodeOfIP(ip,x):
     for node in x:
