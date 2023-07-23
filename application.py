@@ -18,7 +18,7 @@ handler = ipinfo.getHandler(access_token)
 app = Flask(__name__)
 @app.route('/')
 def hello():
-    return render_template("mapdisplay.html")
+    return render_template("templates/mapdisplay.html")
 
 
 # def finalLocation(ipaddress):
