@@ -18,7 +18,7 @@ handler = ipinfo.getHandler(access_token)
 app = Flask(__name__)
 @app.route('/')
 def hello():
-    return render_template("templates/mapdisplay.html")
+    return render_template("mapdisplay.html")
 
 
 # def finalLocation(ipaddress):
@@ -29,7 +29,8 @@ def hello():
 # a = finalLocation('176.58.90.161')
 # print(a)
 
-x = readNodes('static/midar-iff.nodes')[0]
+# x = readNodes('static/midar-iff.nodes')[0]
+x = readNodes('test.nodes.txt')[0]
 
 
 @app.route('/getip',methods = ['POST', 'GET'])
