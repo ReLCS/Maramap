@@ -52,6 +52,26 @@
 
     }
 
+    function logFile (event) {
+        let str = event.target.result;
+        let json = JSON.parse(str);
+        console.log(json);
+        for (let traceroute in json) {
+            parseIPJson(json);
+        }
+    }
+
+    function getTracerts() {
+        event.preventDefault();
+        let file = document.querySelector('#file');
+        let form = document.querySelector('#upload');
+        if (!file.value.length) return;
+        let reader = new FileReader();
+        reader.onload = logFile;
+        reader.readAsText(file.files[0]);
+    }
+
+
     function parseIPRaw() {
         var ipStrings = $(tracert_raw).val();
         const ipArray = ipStrings.split(/\r?\n/);
@@ -86,6 +106,7 @@
                 }, 
             success: function(data){
 
+
                 alert(data);
                 data = JSON.parse(data);
 
@@ -111,24 +132,6 @@
                     strokeOpacity: 1.0,
                     strokeWeight: 2,
                 });
-
-                function findDuplicates(arr) {
-                    const set = new Set();
-                    const duplicates = [];
-
-                    for (const item of arr) {
-                        if (set.has(item)) {
-                        duplicates.push(item);
-                        } else {
-                        set.add(item);
-                        }
-                    }
-                    return duplicates, set;
-                }
-
-                // var duplicateNodes = findDuplicates(nodes)[0]
-                // var nonDupNodes = findDuplicates(nodes)[1]
-                // console.log(duplicateNodes)
 
 
                 var nodeIDs = new Array();
@@ -188,40 +191,6 @@
                     var index = index + 1
                 }
 
-
-
-
-                // for (let info in locs) {
-                //     console.log(locations[index]);
-                //     // const contentstring = "location number "+(index+1)+"<br>city: " + data[info].city +"<br>country: "+ data[info].country +"<br>hostname: "+ data[info].hostname + "<br>ip: "+data[info].ip + "<br>loc: "+data[info].loc+"<br>org: "+data[info].org+"<br>postal: "+data[info].postal+"<br>region: "+data[info].region+"<br>timezone: "+data[info].timezone
-                //     // const infowindow = new google.maps.InfoWindow({
-                //     //     content: contentstring
-                //     // })
-                //     const contentstring = ipadrs[index] + "<br>AS Number: " + asnums[index] + "<br>Method: " + methods[index] + "<br>Hostname: " + hostnames[index]
-                //     if (!asColorMap.has(asnums[index])){
-                //         asColorMap.set(asnums[index], Math.floor(Math.random() * (0xFFFFFF + 1)))
-                //     }
-                //     const infowindow = new google.maps.InfoWindow({
-                //         content: contentstring
-                //     });
-                //     const colorHex = asColorMap.get(asnums[index]).toString(16);
-
-                //     const marker = new google.maps.Marker({
-                //         position: locations[index],
-                //         map: map,
-                //         label: String(index + 1),
-                //         icon: 'http://chart.apis.google.com/chart?chst=d_map_pin_letter&chld=|'+colorHex+'|000000',
-                //     });
-                //     marker.addListener("spider_click",()=> {
-                //         infowindow.open({
-                //             anchor: marker,
-                //             map,
-                //         })
-                //     });
-                //     oms.addMarker(marker);
-                    
-                //     var index = index + 1
-                // }
                 flightPath.setMap(map);
             }
         });
@@ -232,7 +201,6 @@
             zoom: 3,
             center: new google.maps.LatLng(35.994033, -78.898619)
         });
-
         
 
     }
@@ -256,7 +224,15 @@
     <a hidden href="" id="a">click here to download your file</a>
     <button onclick="download('myfilename.txt', 'text/plain')">Save JSON file</button></tr></table></td>
 
+    <form id="upload">
+        <label for="file">File to upload</label>
+        <input type="file" id="file" accept=".json">
+
+        <button onclick="getTracerts()">Upload</button>
+    </form>
+
 </section>
-    <div id="map_canvas" style="width: 100%; height: 100%;" />
+<div id="map_canvas" style="width: 100%; height: 100%;"></div>
+
 </body>
 </html>
