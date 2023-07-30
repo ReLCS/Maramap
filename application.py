@@ -29,10 +29,10 @@ def hello():
 # a = finalLocation('176.58.90.161')
 # print(a)
 
-# x = readNodes('static/midar-iff.nodes')
+x = readNodes('static/midar-iff.nodes')
 
 
-x = readNodes('test.nodes.txt')
+# x = readNodes('test.nodes.txt')
 
 
 @app.route('/getip',methods = ['POST', 'GET'])
