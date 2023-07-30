@@ -126,7 +126,6 @@ def postRequest():
             except Exception as e:
                 print('ipinfo did not work ')
                 print(e)
-                index = index + 1
 
             #     a = socket.gethostbyaddr(ipadr)[0]
             #     b = findRegexAndPlan(a)
