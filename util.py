@@ -156,9 +156,7 @@ def readTraceroute(filename, status):
 
 
 def determineNodeOfIP(ip,x):
-    for ipadr in x:
-        if int(ipaddress.ip_address(ip)) == ipadr:
-            return x[ipadr]
+    return x[int(ipaddress.ip_address(ip))]
 
 # a = determineNodeOfIP('187.253.253.101',x)
 # print(a)
