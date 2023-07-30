@@ -63,6 +63,7 @@ def postRequest():
             except Exception as e:
                 print('could not find node')
                 print(e)
+                continue
 
 
             #find as num
