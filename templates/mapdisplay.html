@@ -219,6 +219,12 @@
 
                     const asColorMap = new Map();
 
+                    const oms = new OverlappingMarkerSpiderfier(map, {
+                            markersWontMove: true,
+                            markersWontHide: true,
+                            basicFormatEvents: true
+                        });
+
                     for (let node in nodeIds) {
 
 
@@ -257,12 +263,14 @@
                             icon: 'http://chart.apis.google.com/chart?chst=d_map_pin_letter&chld=|' + colorHex + '|000000',
 
                         });
-                        marker.addListener("click", () => {
+                        marker.addListener("spider_click", () => {
                             infowindow.open({
                                 anchor: marker,
                                 map,
                             })
                         })
+                        
+                        oms.addMarker(marker);
                     }
 
 
