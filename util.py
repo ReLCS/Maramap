@@ -22,7 +22,7 @@ def stripComment(line):
 
 
 def splitColon(line):
-    p = line.find(":")
+    p = line.find(":  ")
     if p != -1:
         return line[:p], line[p+1:]
     return line, ''
@@ -51,18 +51,23 @@ def readFromCache(cachename, readFunc):
 
 def readNodes(filename):
     def f(filename):
-        node_ifaces = {}
+        # node_ifaces = {}
         iface_node = {}
+
         for line in reader(filename):
+
             node, ifaces = splitColon(line)
+
             nid = int(node.split()[1][1:])
-            ifaces = [int(ipaddress.ip_address(i)) for i in ifaces.split()]
-            # ifaces = [i.replace(".","") for i in ifaces.split()]
-            node_ifaces[nid] = ifaces
-            # for iface in ifaces:
-            #     iface_node[iface.replace(".","")] = nid
-        # return (node_ifaces, iface_node)
-        return (node_ifaces)
+
+            # ifaces = [int(ipaddress.ip_address(i)) for i in ifaces.split()]
+            # node_ifaces[nid] = ifaces
+
+
+            for iface in ifaces.split():
+                iface_node[int(ipaddress.ip_address(iface))] = nid
+
+        return (iface_node)
     return readFromCache("nodes.pickle", lambda: f(filename))
 
 
@@ -143,11 +148,17 @@ def readTraceroute(filename, status):
 # print(x)
 # print(x)
 
+# def determineNodeOfIP(ip,x):
+#     for node in x:
+#         for ipadr in x[node]:
+#             if int(ipaddress.ip_address(ip)) == ipadr:
+#                 return node
+
+
 def determineNodeOfIP(ip,x):
-    for node in x:
-        for ipadr in x[node]:
-            if int(ipaddress.ip_address(ip)) == ipadr:
-                return node
+    for ipadr in x:
+        if int(ipaddress.ip_address(ip)) == ipadr:
+            return x[ipadr]
 
 # a = determineNodeOfIP('187.253.253.101',x)
 # print(a)
