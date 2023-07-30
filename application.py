@@ -29,10 +29,10 @@ def hello():
 # a = finalLocation('176.58.90.161')
 # print(a)
 
-x = readNodes('static/midar-iff.nodes')
+# x = readNodes('static/midar-iff.nodes')
 
 
-# x = readNodes('test.nodes.txt')
+x = readNodes('test.nodes.txt')
 
 
 @app.route('/getip',methods = ['POST', 'GET'])
@@ -138,5 +138,5 @@ def postRequest():
     # return json.dumps(data)
     
 if __name__ == '__main__':
-    app.run(debug=True, port=8001)
+    app.run(debug=True, port=5000)
     # app.run()
