@@ -49,44 +49,108 @@ def postRequest():
         index = 0
 
         for ipadr in allips[tracert]:
+
+            print('-----')
+
+            print(ipadr)
             
-            ipaddressinfo = {}
-            asnum = asndb.lookup(ipadr)[0]
-            ipaddressinfo['tracertnum'] = str(int(tracert)+1)
-            ipaddressinfo['asnum'] = asnum
-            ipaddressinfo['latency'] = allips[tracert][ipadr]
-            ipaddressinfo['ip'] = ipadr
-            try:
-                a = socket.gethostbyaddr(ipadr)[0]
-                ipaddressinfo['hostname'] = a
-                b = findRegexAndPlan(a)
-                ipaddressinfo['coordinates'] = b[0]+','+b[1]
-                ipaddressinfo['method'] = 'regex'
-                data[str(index)] = ipaddressinfo
-            except Exception as e: 
-                print(e)
-                ipaddressinfo['hostname'] = 'no hostname'
-                try:
-                    ripeinfo = (requests.get('https://ipmap-api.ripe.net/v1/locate/all?resources=' + ipadr)).json()
-                    ipaddressinfo['coordinates'] = str(ripeinfo['data'][ipadr]['latitude']) + ',' + str(ripeinfo['data'][ipadr]['longitude'])
-                    ipaddressinfo['method'] = 'ripe ip map'
-                    data[str(index)] = ipaddressinfo
-                except Exception as e:
-                    print(e)
-                    try: 
-                        details = handler.getDetails(ipadr)
-                        ipaddressinfo['coordinates'] = details.loc
-                        ipaddressinfo['method'] = 'ipinfo'
-                        data[str(index)] = ipaddressinfo
-                    except Exception as e: 
-                        print(e)
+            ipaddressinfo = {'ip': ipadr, 'tracertnum': str(int(tracert)+1), 'latency': allips[tracert][ipadr]}
 
             try:
                 nodeid = determineNodeOfIP(ipadr,x)
                 ipaddressinfo['nodeid'] = nodeid
+                print('found node')
             except Exception as e:
+                print('could not find node')
                 print(e)
-            index = index + 1
+
+
+            #find as num
+            try: 
+                asnum = asndb.lookup(ipadr)[0]
+                ipaddressinfo['asnum'] = asnum
+                print('asnum found')
+            except Exception as e:    
+                print('AS Num exception: ' + e)
+
+
+            #try to use DNS method
+            try:
+                host = socket.gethostbyaddr(ipadr)[0]
+                ipaddressinfo['hostname'] = host
+                print('hostname found')
+
+                try: 
+                    regexCoords = findRegexAndPlan(host)
+                    ipaddressinfo['coordinates'] = regexCoords[0]+','+regexCoords[1]
+                    ipaddressinfo['method'] = 'regex'
+                    data[str(index)] = ipaddressinfo
+                    print('used regex method')
+                    index = index + 1
+                    continue
+                
+                except Exception as e:
+                    print('Could not find regex in hostname')
+                    print(e)
+
+            except Exception as e:
+                ipaddressinfo['hostname'] = 'no hostname'
+                print('Hostname not found ')
+                print(e)
+
+            
+            #try to use ripe method
+            try:
+                ripeinfo = (requests.get('https://ipmap-api.ripe.net/v1/locate/all?resources=' + ipadr)).json()
+                ipaddressinfo['coordinates'] = str(ripeinfo['data'][ipadr]['latitude']) + ',' + str(ripeinfo['data'][ipadr]['longitude'])
+                ipaddressinfo['method'] = 'ripe ip map'
+                data[str(index)] = ipaddressinfo
+                print('used ripe ip map method')
+                index = index + 1
+                continue
+
+            except Exception as e:
+                print('Ripe IP map did not work')
+                print(e)
+
+
+            #use IPinfo
+            try:
+                details = handler.getDetails(ipadr)
+                ipaddressinfo['coordinates'] = details.loc
+                ipaddressinfo['method'] = 'ipinfo'
+                data[str(index)] = ipaddressinfo
+                print('used ipInfo')
+                index = index + 1
+            except Exception as e:
+                print('ipinfo did not work ')
+                print(e)
+                index = index + 1
+
+            #     a = socket.gethostbyaddr(ipadr)[0]
+            #     b = findRegexAndPlan(a)
+            #     ipaddressinfo['coordinates'] = b[0]+','+b[1]
+            #     ipaddressinfo['method'] = 'regex'
+            #     data[str(index)] = ipaddressinfo
+            # except Exception as e: 
+            #     print(e)
+            #     ipaddressinfo['hostname'] = 'no hostname'
+            #     try:
+            #         ripeinfo = (requests.get('https://ipmap-api.ripe.net/v1/locate/all?resources=' + ipadr)).json()
+            #         ipaddressinfo['coordinates'] = str(ripeinfo['data'][ipadr]['latitude']) + ',' + str(ripeinfo['data'][ipadr]['longitude'])
+            #         ipaddressinfo['method'] = 'ripe ip map'
+            #         data[str(index)] = ipaddressinfo
+            #     except Exception as e:
+            #         print(e)
+            #         try: 
+            #             details = handler.getDetails(ipadr)
+            #             ipaddressinfo['coordinates'] = details.loc
+            #             ipaddressinfo['method'] = 'ipinfo'
+            #             data[str(index)] = ipaddressinfo
+            #         except Exception as e: 
+            #             print(e)
+
+
         
         finaldata[tracert] = data
 
@@ -139,4 +203,4 @@ def postRequest():
     
 if __name__ == '__main__':
     app.run()
-    # app.run()
+    # app.run(debug = True, port = 8001)

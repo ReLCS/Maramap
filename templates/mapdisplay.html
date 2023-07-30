@@ -132,7 +132,9 @@
                     if (hopinfo.result[0].from === undefined) { continue; }
                     let latency = 0;
                     for (let packet in hopinfo.result) {
-                        latency = ((latency * parseFloat(packet)) + parseFloat(hopinfo.result[packet].rtt)) / (parseFloat(packet) + 1);
+                        if (hopinfo.result[packet].rtt != undefined){
+                            latency = ((latency * parseFloat(packet)) + parseFloat(hopinfo.result[packet].rtt)) / (parseFloat(packet) + 1);
+                        }
                     }
                     iplist[hopinfo.result[0].from] = latency.toString();
                 }
