@@ -193,40 +193,6 @@
                     alert(data);
                     data = JSON.parse(data);
 
-                    var dataTable = document.getElementById('InfoTable');
-
-                    for (let index in data) {
-
-                        var row = dataTable.insertRow(-1);
-                        row.className = 'tableRow';
-                        var cell = row.insertCell(0);
-                        cell.colSpan = 7;
-                        cell.innerHTML = '<b> Traceroute ' + (parseFloat(index)+1).toString();
-                     
-                        for (let ip in data[index]) {
-
-                            var row = dataTable.insertRow(-1);
-                            row.className = 'tableRow';
-                            var ipadrcell = row.insertCell(0);
-                            var nodeidcell = row.insertCell(1);
-                            var latcell = row.insertCell(2);
-                            var longcell = row.insertCell(3);
-                            var asnumcell = row.insertCell(4);
-                            var hostnamecell = row.insertCell(5);
-                            var methodcell = row.insertCell(6);
-                            ipadrcell.innerHTML = data[index][ip]['ip'];
-                            nodeidcell.innerHTML = data[index][ip]['nodeid'];
-                            latcell.innerHTML = data[index][ip]['coordinates'].split(',')[0];
-                            longcell.innerHTML = data[index][ip]['coordinates'].split(',')[1];
-                            asnumcell.innerHTML = data[index][ip]['asnum'];
-                            hostnamecell.innerHTML = data[index][ip]['hostname'];
-                            methodcell.innerHTML = data[index][ip]['method'];
-
-                        }
-                    }
-
-
-
                     var nodeIds = {}; // format: {nodeId1: {ip1: {info}, ip2: {info}}, nodeId2: {ip3: {info}}}
 
                     for (let index in data) {
@@ -370,6 +336,43 @@
                         }
                     }
 
+                    var dataTable = document.getElementById('InfoTable');
+
+                    for (let index in data) {
+
+                        var row = dataTable.insertRow(-1);
+                        row.className = 'tableRow';
+                        var cell = row.insertCell(0);
+                        cell.colSpan = 2;
+                        var coloredcell = row.insertCell(-1);
+                        cell.innerHTML = '<b> Traceroute ' + (parseFloat(index)+1).toString();
+                        coloredcell.style.backgroundColor = TracerouteColorMap.get(index);
+                        coloredcell.colSpan = 6
+                     
+                        for (let ip in data[index]) {
+
+                            var row = dataTable.insertRow(-1);
+                            row.className = 'tableRow';
+                            var ipadrcell = row.insertCell(0);
+                            var nodeidcell = row.insertCell(1);
+                            var latcell = row.insertCell(2);
+                            var longcell = row.insertCell(3);
+                            var asnumcell = row.insertCell(4);
+                            var asnumcolorcell = row.insertCell(5);
+                            var hostnamecell = row.insertCell(6);
+                            var methodcell = row.insertCell(7);
+                            ipadrcell.innerHTML = data[index][ip]['ip'];
+                            nodeidcell.innerHTML = data[index][ip]['nodeid'];
+                            latcell.innerHTML = data[index][ip]['coordinates'].split(',')[0];
+                            longcell.innerHTML = data[index][ip]['coordinates'].split(',')[1];
+                            asnumcell.innerHTML = data[index][ip]['asnum'];
+                            asnumcolorcell.style.backgroundColor = asColorMap.get(data[index][ip]['asnum']);
+                            asnumcolorcell.style.width = '10px';
+                            hostnamecell.innerHTML = data[index][ip]['hostname'];
+                            methodcell.innerHTML = data[index][ip]['method'];
+
+                        }
+                    }
 
 
                     // alert(data);
@@ -460,10 +463,20 @@
                 }
             });
         }
+        const BOUNDS = {
+            north: 65.283569,
+            south: 65.283569,
+            west: -169.325060,
+            east: -169.325060,
+        };
 
         function initialize() {
 
             map = new google.maps.Map(document.getElementById("map_canvas"), {
+                restriction: {
+                latLngBounds: BOUNDS,
+                strictBounds: false,
+                },
                 zoom: 3,
                 center: new google.maps.LatLng(35.994033, -78.898619)
             });
@@ -486,7 +499,7 @@
                 <td>Node ID</td>
                 <td>Latitude</td>
                 <td>Longitude</td>
-                <td>AS Number</td>
+                <td colspan = 2>AS Number</td>
                 <td>Hostname</td>
                 <td>Method</td>
                 

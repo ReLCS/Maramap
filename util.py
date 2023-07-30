@@ -1,6 +1,7 @@
 import os
 import json
 import pickle
+import ipaddress
 
 
 def km2ms(km):
@@ -55,11 +56,13 @@ def readNodes(filename):
         for line in reader(filename):
             node, ifaces = splitColon(line)
             nid = int(node.split()[1][1:])
-            ifaces = [i.replace(".","") for i in ifaces.split()]
+            ifaces = [int(ipaddress.ip_address(i)) for i in ifaces.split()]
+            # ifaces = [i.replace(".","") for i in ifaces.split()]
             node_ifaces[nid] = ifaces
-            for iface in ifaces:
-                iface_node[iface.replace(".","")] = nid
-        return (node_ifaces, iface_node)
+            # for iface in ifaces:
+            #     iface_node[iface.replace(".","")] = nid
+        # return (node_ifaces, iface_node)
+        return (node_ifaces)
     return readFromCache("nodes.pickle", lambda: f(filename))
 
 
@@ -136,13 +139,14 @@ def readTraceroute(filename, status):
     return traces
 
 # x = readNodes('static/midar-iff.nodes')[0]
-# x = readNodes('test.nodes.txt')[0]
+# x = readNodes('test.nodes.txt')
+# print(x)
 # print(x)
 
 def determineNodeOfIP(ip,x):
     for node in x:
         for ipadr in x[node]:
-            if ip.replace(".","") == ipadr:
+            if int(ipaddress.ip_address(ip)) == ipadr:
                 return node
 
 # a = determineNodeOfIP('187.253.253.101',x)
