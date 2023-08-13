@@ -6,7 +6,9 @@ import socket
 import requests
 import redis
 import ipinfo
-
+import math
+import ipaddress
+from geopy import distance
 
 r = redis.Redis(host='localhost', port=6379, db=0)
 
@@ -15,12 +17,27 @@ handler = ipinfo.getHandler(access_token)
 
 # x = readNodes('static/midar-iff.nodes')
 
-def getIPInfo_FromDB(ipadr):
+def calculate_latency(lat1, lon1, lat2, lon2):
+    d = distance.distance((lat1,lon1), (lat2,lon2)).km
 
+    speed_of_light_in_fiber = 200000.0  # in km/s
+    latency = (d / speed_of_light_in_fiber) * 1000
+
+    return latency
+
+
+
+def ip_in_cidr(ip, cidr):
+
+    ip_obj = ipaddress.ip_address(ip)
+    network_obj = ipaddress.ip_network(cidr, strict=False)
+    
+    # Check if the IP address is in the network
+    return ip_obj in network_obj
+
+
+def getFromRegex(ipadr):
     info = {}
-    # print(ipadr)
-
-
     try:
         host = socket.gethostbyaddr(ipadr)[0]
         info['hostname'] = host
@@ -32,46 +49,30 @@ def getIPInfo_FromDB(ipadr):
             info['method'] = 'regex'
             # print('used regex method')
 
-            try:
-                country = (requests.get('https://maps.googleapis.com/maps/api/geocode/json?latlng=' + info['coordinates'] +'&key=AIzaSyAO-r75d8IVw3xwou82zXbABZnrNUFSKGY')).json()['plus_code']['compound_code'].split(', ')[-1]
-                info['country'] = country
-            except:
-                info['country'] = False
-                pass
-
             return info
-        
+    
         except Exception as e:
             # print('Could not find regex in hostname')
             # print(e)
-            pass
-
+            return 'X'
     except Exception as e:
-        info['hostname'] = 'no hostname'
-        # print('Hostname not found ')
-        # print(e)    
+        return 'X'
     
-    #try to use ripe method
+def getFromRipe(ipadr):
+    info = {}
     try:
         ripeinfo = (requests.get('https://ipmap-api.ripe.net/v1/locate/all?resources=' + ipadr)).json()
         info['coordinates'] = str(ripeinfo['data'][ipadr]['latitude']) + ',' + str(ripeinfo['data'][ipadr]['longitude'])
         info['method'] = 'ripe ip map'
         # print('used ripe ip map method')
 
-        try:
-            country = (requests.get('https://maps.googleapis.com/maps/api/geocode/json?latlng=' + info['coordinates'] +'&key=AIzaSyAO-r75d8IVw3xwou82zXbABZnrNUFSKGY')).json()['plus_code']['compound_code'].split(', ')[-1]
-            info['country'] = country
-        except:
-            info['country'] = False
-            pass
-
         return info
-
     except Exception as e:
-        # print('Ripe IP map did not work')
-        # print(e)
-        pass
+        
+        return 'X'
 
+def getFromIPInfo(ipadr):
+    info = {}
     #use IPinfo
     try:
         details = handler.getDetails(ipadr)
@@ -79,16 +80,26 @@ def getIPInfo_FromDB(ipadr):
         info['method'] = 'ipinfo'
         # print('used ipInfo')
 
-        try:
-            country = (requests.get('https://maps.googleapis.com/maps/api/geocode/json?latlng=' + info['coordinates'] +'&key=AIzaSyAO-r75d8IVw3xwou82zXbABZnrNUFSKGY')).json()['plus_code']['compound_code'].split(', ')[-1]
-            info['country'] = country
-        except:
-            info['country'] = False
-            pass
-
         return info
     except Exception as e:
-        return False
+        return 'X'
+
+
+def getIPInfo_FromDB(ipadr):
+    # print(ipadr)
+
+    info = getFromRegex(ipadr)
+
+    if info == 'X':
+        info = getFromRipe(ipadr)
+        if info == 'X':
+            info = getFromIPInfo(ipadr)
+            if info == 'X':
+                return False
+            return info
+        return info
+    return info
+
 
 def getIPInfo(ipadr):
 
@@ -100,6 +111,7 @@ def getIPInfo(ipadr):
     else: 
         ipaddressinfo = getIPInfo_FromDB(ipadr)
         r.set(ipadr, json.dumps(ipaddressinfo))
+        r.expire(ipadr, 86400)
         return ipaddressinfo
 
 

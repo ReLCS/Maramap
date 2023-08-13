@@ -7,20 +7,29 @@
 
     <style>
         .sideDisplay {
-            height: 100%; /* Full-height: remove this if you want "auto" height */
-            width: 350px; /* Set the width of the sidebar */
-            position: fixed; /* Fixed Sidebar (stay in place on scroll) */
-            z-index: 1; /* Stay on top */
-            top: 0; /* Stay at the top */
+            height: 100%;
+            /* Full-height: remove this if you want "auto" height */
+            width: 350px;
+            /* Set the width of the sidebar */
+            position: fixed;
+            /* Fixed Sidebar (stay in place on scroll) */
+            z-index: 1;
+            /* Stay on top */
+            top: 0;
+            /* Stay at the top */
             right: 0;
             background-color: white;
             padding-top: 20px;
+            resize: horizontal;
+            /* This allows horizontal resizing */
+            overflow: auto;
             overflow-y: auto;
             font-family: 'lato', sans-serif;
             border-left-style: solid;
             border-left-width: 2px;
             border-left-color: lightgrey;
         }
+
         .sideDisplay a {
             padding: 6px 8px 6px 16px;
             text-decoration: none;
@@ -29,7 +38,8 @@
             display: block;
             box-shadow: none;
         }
-        .sideDisplay table{ 
+
+        .sideDisplay table {
             padding: 6px 8px 6px 16px;
             font-family: 'lato', Arial, Helvetica, sans-serif;
             border-radius: 3px;
@@ -51,14 +61,58 @@
         .tableRow {
             background-color: #ffffff;
             box-shadow: none;
-            font-size:12px;
+            font-size: 12px;
         }
 
         .main {
-            margin-right: 350px; /* Same as the width of the sidebar */
+            margin-right: 350px;
+            /* Same as the width of the sidebar */
             /* padding: 0px 10px; */
             overflow-y: hidden;
             font-style: italic;
+        }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 30px;
+            height: 17px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #2196F3;
+            transition: .4s;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 13px;
+            width: 13px;
+            left: 2px;
+            bottom: 2px;
+            background-color: white;
+            transition: .2s;
+        }
+
+        input:checked+.slider {
+            background-color: #ccc;
+        }
+
+        input:checked+.slider:before {
+            transform: translateX(13px);
         }
     </style>
 
@@ -68,7 +122,7 @@
         src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAO-r75d8IVw3xwou82zXbABZnrNUFSKGY&libraries=geometry&callback=initMap"></script>
     <script type="text/javascript">
 
-        
+
 
         var map;
         function parseIPJson() {
@@ -78,14 +132,37 @@
             const allips = {};
             for (let traceroute in json) {
                 let iplist = {};
+                iplist[json[traceroute]['src_addr']] = 'first'
                 for (let hop in json[traceroute].result) {
                     var hopinfo = json[traceroute].result[hop];
-                    if (hopinfo.result[0].from === undefined) { continue; }
-                    let latency = 0;
-                    for (let packet in hopinfo.result) {
-                        latency = ((latency * parseFloat(packet)) + parseFloat(hopinfo.result[packet].rtt)) / (parseFloat(packet) + 1);
+                    let ip = 0
+                    try {
+                        if (hopinfo.result[0].from != undefined) {
+                            ip = hopinfo.result[0].from
+                        }
+                        else if (hopinfo.result[1].from != undefined) {
+                            ip = hopinfo.result[1].from
+                        }
+                        else if (hopinfo.result[2].from != undefined) {
+                            ip = hopinfo.result[2].from
+                        }
+                        else {
+                            continue
+                        }
                     }
-                    iplist[hopinfo.result[0].from] = latency.toString();
+                    catch {
+                        continue
+                    }
+
+                    let rtt = 0;
+                    for (let packet in hopinfo.result) {
+                        if (hopinfo.result[packet].rtt != undefined) {
+                            rtt = ((rtt * parseFloat(packet)) + parseFloat(hopinfo.result[packet].rtt)) / (parseFloat(packet) + 1);
+                        }
+                    }
+                    if (rtt != 0) {
+                        iplist[ip] = rtt.toString();
+                    }
                 }
                 allips[traceroute] = iplist;
             }
@@ -127,16 +204,37 @@
             const allips = {};
             for (let traceroute in json) {
                 let iplist = {};
+                iplist[json[traceroute]['src_addr']] = 'first'
                 for (let hop in json[traceroute].result) {
                     var hopinfo = json[traceroute].result[hop];
-                    if (hopinfo.result[0].from === undefined) { continue; }
-                    let latency = 0;
-                    for (let packet in hopinfo.result) {
-                        if (hopinfo.result[packet].rtt != undefined){
-                            latency = ((latency * parseFloat(packet)) + parseFloat(hopinfo.result[packet].rtt)) / (parseFloat(packet) + 1);
+                    let ip = 0
+                    try {
+                        if (hopinfo.result[0].from != undefined) {
+                            ip = hopinfo.result[0].from
+                        }
+                        else if (hopinfo.result[1].from != undefined) {
+                            ip = hopinfo.result[1].from
+                        }
+                        else if (hopinfo.result[2].from != undefined) {
+                            ip = hopinfo.result[2].from
+                        }
+                        else {
+                            continue
                         }
                     }
-                    iplist[hopinfo.result[0].from] = latency.toString();
+                    catch {
+                        continue
+                    }
+
+                    let rtt = 0;
+                    for (let packet in hopinfo.result) {
+                        if (hopinfo.result[packet].rtt != undefined) {
+                            rtt = ((rtt * parseFloat(packet)) + parseFloat(hopinfo.result[packet].rtt)) / (parseFloat(packet) + 1);
+                        }
+                    }
+                    if (rtt != 0) {
+                        iplist[ip] = rtt.toString();
+                    }
                 }
                 allips[traceroute] = iplist;
             }
@@ -157,27 +255,68 @@
 
         function parseIPRaw() {
             var ipStrings = $(tracert_raw).val();
-            const ipArray = ipStrings.split(/\r?\n/);
-            let ips = ''
-            for (let index in ipArray) {
-                let line = ipArray[index];
-                if (line.substring(0, 4) == '    ') {
-                    continue
-                }
-                let ip = '';
-                let position1 = line.search("\\(");
-                let position2 = line.search("\\)");
-                let currentPosition = position1 + 1;
-                while (currentPosition < position2) {
-                    ip = ip + line[currentPosition];
-                    currentPosition = currentPosition + 1;
-                }
-                if (position1 != -1) {
-                    ips = ips + ip + ',';
-                }
+
+            const traceroutes = ipStrings.split(',').map(route => route.trim());
+
+            const result = {};
+
+            for (let index = 0; index < traceroutes.length; index++) {
+                const lines = traceroutes[index].split("\n");
+                const traceDict = {};
+
+                lines.forEach(line => {
+                    // Split each line by space
+                    const parts = line.trim().split(/\s+/);
+
+                    // Extract the IP address (should be in the form of 1.2.3.4, so we check if the length of parts is greater than 2)
+                    if (parts.length > 2 && (parts[1].match(/\./g) || []).length === 3) {
+                        const ip = parts[1];
+                        const latencies = parts.filter((_, idx) => (idx >= 2 && idx % 2 === 1)).map(parseFloat);
+
+                        // Calculate average latency
+                        const averageLatency = latencies.reduce((a, b) => a + b, 0) / latencies.length;
+
+                        // Add to dictionary
+                        traceDict[ip.toString()] = averageLatency.toString();
+                    }
+                });
+
+                // Add the entire trace dictionary to the result with the index as key
+                result[index.toString()] = traceDict;
             }
-            ips = ips.substring(0, ips.length - 1);
-            doSearch(ips);
+
+            console.log(result);
+            doSearch(JSON.stringify(result));
+
+
+
+            // const tracerouteList = ipStrings.split(',')
+            // for (let traceroute in tracerouteList){
+            //     const ipArray = traceroute.split(/\r?\n/);
+            //     let ips = ''
+            //     for (let index in ipArray) {
+            //         let line = ipArray[index];
+            //         if (line.substring(0, 4) == '    ') {
+            //             continue
+            //         }
+            //         let ip = '';
+            //         let position1 = line.search("\\(");
+            //         let position2 = line.search("\\)");
+            //         let currentPosition = position1 + 1;
+            //         while (currentPosition < position2) {
+            //             ip = ip + line[currentPosition];
+            //             currentPosition = currentPosition + 1;
+            //         }
+            //         if (position1 != -1) {
+            //             ips = ips + ip + ',';
+            //         }
+
+
+
+            //     }
+            //     ips = ips.substring(0, ips.length - 1);
+            //     doSearch(ips);
+            // }
         }
 
 
@@ -197,6 +336,7 @@
 
                     var nodeIds = {}; // format: {nodeId1: {ip1: {info}, ip2: {info}}, nodeId2: {ip3: {info}}}
 
+
                     for (let index in data) {
 
                         let tracertInfo = data[index];
@@ -205,6 +345,8 @@
 
                             let ipinfo = tracertInfo[ipaddress];
 
+                            let currentip = ipinfo['ip']
+
                             let nodeID = (ipinfo['nodeid']).toString();
                             if (nodeIds[nodeID] === undefined) {
                                 nodeIds[nodeID] = [];
@@ -212,6 +354,7 @@
                             let ipadrinfo = nodeIds[nodeID];
                             ipadrinfo.push(ipinfo);
                             nodeIds[nodeID] = ipadrinfo;
+
                         }
                     }
 
@@ -220,24 +363,43 @@
                     const asColorMap = new Map();
 
                     const oms = new OverlappingMarkerSpiderfier(map, {
-                            markersWontMove: true,
-                            markersWontHide: true,
-                            basicFormatEvents: true
-                        });
+                        markersWontMove: true,
+                        markersWontHide: true,
+                        basicFormatEvents: true
+                    });
+
+                    var nodeInfo = {}
+
 
                     for (let node in nodeIds) {
 
 
-
                         loc = { 'lat': parseFloat((nodeIds[node][0]['coordinates']).split(',')[0]), 'lng': parseFloat((nodeIds[node][0]['coordinates']).split(',')[1]) };
-
 
                         let contentString = '<h2>Node ID: ' + node.toString() + '</h2>Coordinates: ' + nodeIds[node][0]['coordinates']
 
+                        if (node.toString().includes('.') === true) {
+                            contentString = contentString + '<br>Router Not Found'
+                        }
+
                         let locInfo = null;
+                        let includesSource = false;
+                        let includesEnd = false
 
                         for (let x in nodeIds[node]) {
+
                             locInfo = nodeIds[node][x];
+
+                            if (locInfo['predictedlatency'] === 'first') {
+
+                                includesSource = true;
+
+                            }
+
+                            if (locInfo['lasthop'] === true) {
+                                includesEnd = true
+                            }
+
                             const currentContentString = '<br><br><b>Interface ' + (parseFloat(x) + 1).toString() + '</b><br>IP Address: ' + locInfo['ip'] + '<br>Traceroute #' + locInfo['tracertnum'] + '<br>AS Number: ' + locInfo['asnum'] + '<br>Method: ' + locInfo['method'];
                             contentString = contentString + currentContentString;
 
@@ -254,25 +416,138 @@
                             content: contentString,
                         });
 
-                        const marker = new google.maps.Marker({
-                            position: loc,
-                            map: map,
-                            // label: contentString,
-                            // icon: 'http://chart.apis.google.com/chart?chst=d_map_pin_letter&chld=|' + 
-                            // // label: String(index + 1),
-                            icon: 'http://chart.apis.google.com/chart?chst=d_map_pin_letter&chld=|' + colorHex + '|000000',
 
-                        });
-                        marker.addListener("spider_click", () => {
-                            infowindow.open({
-                                anchor: marker,
-                                map,
+                        nodeInfo[node] = { 'content': contentString, 'colorHex': colorHex, 'loc': loc };
+
+                        // if (nodeIds[node][0]['amazon'] === true){
+
+                        //     var icon = {
+                        //         url: 'http://chart.apis.google.com/chart?chst=d_map_pin_letter&chld=|' + '00FF00' + '|000000', // url
+                        //         scaledSize: new google.maps.Size(15, 20), // scaled size
+                        //         origin: new google.maps.Point(0,0), // origin
+                        //         anchor: new google.maps.Point(0, 0) // anchor
+                        //     };
+
+                        // }
+
+                        // else{
+                        //     if (includesSource === true){
+                        //         var icon = {
+                        //             url: 'http://chart.apis.google.com/chart?chst=d_map_pin_letter&chld=|' + 'FF0000' + '|000000', // url
+                        //             scaledSize: new google.maps.Size(15, 20), // scaled size
+                        //             origin: new google.maps.Point(0,0), // origin
+                        //             anchor: new google.maps.Point(0, 0) // anchor
+                        //         };                           
+                        //     }
+
+                        //     else{
+                        //         var icon = {
+                        //             url: 'http://chart.apis.google.com/chart?chst=d_map_pin_letter&chld=|' + '808080' + '|000000', // url
+                        //             scaledSize: new google.maps.Size(15, 20), // scaled size
+                        //             origin: new google.maps.Point(0,0), // origin
+                        //             anchor: new google.maps.Point(0, 0) // anchor
+                        //         };
+                        //     }
+                        // } 
+
+                        if (includesEnd === true) {
+                            var icon = {
+                                url: 'http://chart.apis.google.com/chart?chst=d_map_pin_letter&chld=|' + '00FF00' + '|000000', // url
+                                scaledSize: new google.maps.Size(15, 20), // scaled size
+                            };
+                            nodeInfo[node]['icon'] = icon;
+
+                            nodeInfo[node]['marker'] = new google.maps.Marker({
+                                position: loc,
+                                map: map,
+                                scaledSize: new google.maps.Size(15, 20),
+                                // label: contentString,
+                                // icon: 'http://chart.apis.google.com/chart?chst=d_map_pin_letter&chld=|' + 
+                                // // label: String(index + 1),
+                                // icon: 'http://chart.apis.google.com/chart?chst=d_map_pin_letter&chld=|' + colorHex + '|000000',
+                                // icon: 'http://chart.apis.google.com/chart?chst=d_map_pin_letter&chld=|' + '00FF00' + '|000000',
+                                icon: icon
+
+                            });
+
+                            nodeInfo[node]['marker'].addListener("spider_click", () => {
+                                infowindow.open({
+                                    anchor: nodeInfo[node]['marker'],
+                                    map,
+                                })
                             })
-                        })
-                        
-                        oms.addMarker(marker);
-                    }
 
+                            oms.addMarker(nodeInfo[node]['marker']);
+                        }
+                        else {
+                            if (includesSource === true) {
+                                var icon = {
+                                    url: 'http://chart.apis.google.com/chart?chst=d_map_pin_letter&chld=|' + 'FF0000' + '|000000', // url
+                                    scaledSize: new google.maps.Size(15, 20), // scaled size
+                                };
+
+                                nodeInfo[node]['icon'] = icon;
+
+                                nodeInfo[node]['marker'] = new google.maps.Marker({
+                                    position: loc,
+                                    map: map,
+                                    scaledSize: new google.maps.Size(15, 20),
+                                    // label: contentString,
+                                    // icon: 'http://chart.apis.google.com/chart?chst=d_map_pin_letter&chld=|' + 
+                                    // // label: String(index + 1),
+                                    // icon: 'http://chart.apis.google.com/chart?chst=d_map_pin_letter&chld=|' + colorHex + '|000000',
+                                    // icon: 'http://chart.apis.google.com/chart?chst=d_map_pin_letter&chld=|' + '00FF00' + '|000000',
+                                    icon: icon
+
+                                });
+
+                                nodeInfo[node]['marker'].addListener("spider_click", () => {
+                                    infowindow.open({
+                                        anchor: nodeInfo[node]['marker'],
+                                        map,
+                                    })
+                                })
+
+                                oms.addMarker(nodeInfo[node]['marker']);
+
+                            }
+
+
+
+                            else {
+
+                                var icon = {
+                                    url: 'http://chart.apis.google.com/chart?chst=d_map_pin_letter&chld=|' + '808080' + '|000000', // url
+                                    scaledSize: new google.maps.Size(15, 20), // scaled size
+                                };
+                                nodeInfo[node]['icon'] = icon;
+
+                                nodeInfo[node]['marker'] = new google.maps.Marker({
+                                    position: loc,
+                                    map: map,
+                                    scaledSize: new google.maps.Size(15, 20),
+                                    // opacity: 0,
+                                    // label: contentString,
+                                    // icon: 'http://chart.apis.google.com/chart?chst=d_map_pin_letter&chld=|' + 
+                                    // // label: String(index + 1),
+                                    // icon: 'http://chart.apis.google.com/chart?chst=d_map_pin_letter&chld=|' + colorHex + '|000000',
+                                    // icon: 'http://chart.apis.google.com/chart?chst=d_map_pin_letter&chld=|' + '00FF00' + '|000000',
+                                    icon: icon
+
+                                });
+
+                                nodeInfo[node]['marker'].addListener("spider_click", () => {
+                                    infowindow.open({
+                                        anchor: nodeInfo[node]['marker'],
+                                        map,
+                                    })
+                                })
+
+                                oms.addMarker(nodeInfo[node]['marker']);
+                            }
+                        }
+
+                    }
 
 
                     var locationPaths = {};
@@ -282,7 +557,7 @@
                         locationPath = {};
 
                         for (let ip in data[index]) {
-                            info = { "coordinates": data[index][ip]["coordinates"], "latency": data[index][ip]["latency"] }
+                            info = { "coordinates": data[index][ip]["coordinates"], "latency": data[index][ip]["latency"], "node": data[index][ip]['nodeid'] }
                             locationPath[ip.toString()] = info;
 
                         }
@@ -294,6 +569,74 @@
 
                     const TracerouteColorMap = new Map();
 
+                    //                     const manualColors = {
+                    // "0":"#bdceb1",
+                    // "1":"#35d1a7",
+                    // "2":"#e2a04f",
+                    // "3":"#7ae0d4",
+                    // "4":"#3335f7",
+                    // "5":"#a1c675",
+                    // "6":"#21a57d",
+                    // "7":"#9966CC",
+                    // "8":"#946bbe",
+                    // "9":"#25f60c",
+                    // "10":"#ba5d71",
+                    // "11":"#efa29b",
+                    // "12":"#96feae",
+                    // "13":"#139ea6",
+                    // "14":"#b5fa63",
+                    // "15":"#1a72f1",
+                    // "16":"#03bc65",
+                    // "17":"#7b7622",
+                    // "18":"#b8649a",
+                    // "19":"#530ea8",
+                    // "20":"#3be803",
+                    // "21":"#0ce094",
+                    // "22":"#88e8aa",
+                    // "23":"#109ee1",
+                    // "24":"#1396fb",
+                    // "25":"#4e94ca",
+                    // "26":"#9c5eec",
+                    // "27":"#8dc8a6",
+                    // "28":"#315038",
+                    // "29":"#289b7a",
+                    // "30":"#a87140",
+                    // "31":"#afd061",
+                    // "32":"#da52ca",
+                    // "33":"#9512fd",
+                    // "34":"#4a8833",
+                    // "35":"#ae0bee",
+                    // "36":"#967398",
+                    // "37":"#1c4366",
+                    // "38":"#74b9c7",
+                    // "39":"#008000",
+                    // "40":"#d0ade1",
+                    // "41":"#2982d3",
+                    // "42":"#6a975a",
+                    // "43":"#7cecb4",
+                    // "44":"#6939a4",
+                    // "45":"#daa56e",
+                    // "46":"#a3726b",
+                    // "47":"#2135e6",
+                    // "48":"#f8efbd",
+                    // "49":"#ca6709",
+                    // "50":"#212a6e",
+                    // "51":"#98460a",
+                    // "52":"#71c4f5",
+                    // "53":"#6fb4a8",
+                    // "54":"#3de706",
+                    // "55":"#103a0a",
+                    // "56":"#008000",
+                    // "57":"#1c3605",
+                    // "58":"#44b532",
+                    // "59":"#94b25f",
+                    // "60":"#49a150",
+                    // "61":"#ce8815",
+                    // "62":"#a01247",
+                    // "63":"#973f19",
+                    // "64":"#64ee96"
+                    // }
+
 
                     for (let n in locationPaths) {
 
@@ -301,6 +644,8 @@
 
 
                         const colorHex = TracerouteColorMap.get(n);
+
+                        // const colorHex = manualColors[n]
 
                         for (let x in locationPaths[n]) {
 
@@ -345,32 +690,145 @@
                             }
                         }
                     }
+                    console.log(TracerouteColorMap)
 
                     var dataTable = document.getElementById('InfoTable');
+
+                    document.getElementById("toggleSwitch").addEventListener("change", function () {
+                        var subCheckboxes = document.querySelectorAll('.subCheckbox');
+                        for (var i = 0; i < subCheckboxes.length; i++) {
+                            subCheckboxes[i].checked = this.checked;
+                        }
+                        if (this.checked) {
+                            for (let traceroutenum in locationPaths) {
+                                for (let i in locationPaths[traceroutenum]) {
+
+                                    let node = locationPaths[traceroutenum][i]['node'];
+
+                                    nodeInfo[node]['marker'].setMap(null);
+
+                                    if (i != Object.keys(locationPaths[traceroutenum]).pop()) {
+                                        locationPaths[traceroutenum][i]['polyline'].setMap(null);
+                                    }
+
+                                }
+                            }
+                        } else {
+                            for (let traceroutenum in locationPaths) {
+                                for (let i in locationPaths[traceroutenum]) {
+
+                                    let node = locationPaths[traceroutenum][i]['node'];
+
+                                    nodeInfo[node]['marker'].setMap(map);
+
+                                    if (i != Object.keys(locationPaths[traceroutenum]).pop()) {
+                                        locationPaths[traceroutenum][i]['polyline'].setMap(map);
+                                    }
+
+                                }
+                            }
+                        }
+                    });
+
+                    document.getElementById("colorSwitch").addEventListener("change", function () {
+                        if (this.checked) {
+                            for (let traceroutenum in locationPaths) {
+                                for (let i in locationPaths[traceroutenum]) {
+
+                                    let node = locationPaths[traceroutenum][i]['node']
+                                    nodeInfo[node]['marker'].setIcon('http://chart.apis.google.com/chart?chst=d_map_pin_letter&chld=|' + nodeInfo[node]['colorHex'] + '|000000')
+                                }
+                            }
+                        }
+                        else{
+                            for (let traceroutenum in locationPaths) {
+                                for (let i in locationPaths[traceroutenum]) {
+
+                                    let node = locationPaths[traceroutenum][i]['node']
+                                    nodeInfo[node]['marker'].setIcon(nodeInfo[node]['icon'])
+                                }
+                            }
+                        }
+                    })
 
                     for (let index in data) {
 
                         var row = dataTable.insertRow(-1);
                         row.className = 'tableRow';
-                        var cell = row.insertCell(0);
+                        var toggleCell = row.insertCell(0);
+                        var cell = row.insertCell(1);
                         cell.colSpan = 2;
                         var coloredcell = row.insertCell(-1);
-                        cell.innerHTML = '<b> Traceroute ' + (parseFloat(index)+1).toString();
+
+                        const label = document.createElement("label");
+                        label.className = "switch";
+
+                        // Create input checkbox
+                        const input = document.createElement("input");
+                        input.type = "checkbox";
+                        input.className = 'subCheckbox';
+                        input.id = `toggleSwitch-${index}`;
+
+                        // Add event listener to each checkbox
+                        input.addEventListener("change", function () {
+                            if (this.checked) {
+                                console.log(locationPaths[index]);
+                                for (let i in locationPaths[index]) {
+
+                                    let node = locationPaths[index][i]['node'];
+
+                                    nodeInfo[node]['marker'].setMap(null);
+
+                                    if (i != Object.keys(locationPaths[index]).pop()) {
+                                        locationPaths[index][i]['polyline'].setMap(null);
+                                    }
+
+                                }
+                            }
+                            else {
+
+                                for (let i in locationPaths[index]) {
+
+                                    let node = locationPaths[index][i]['node'];
+
+                                    nodeInfo[node]['marker'].setMap(map);
+
+                                    if (i != Object.keys(locationPaths[index]).pop()) {
+                                        locationPaths[index][i]['polyline'].setMap(map);
+                                    }
+
+                                }
+
+                            }
+                        });
+
+                        // Create span element for the switch
+                        const span = document.createElement("span");
+                        span.className = "slider";
+
+                        label.appendChild(input);
+                        label.appendChild(span);
+
+                        toggleCell.appendChild(label);
+
+
+                        cell.innerHTML = '<b> Traceroute ' + (parseFloat(index) + 1).toString();
                         coloredcell.style.backgroundColor = TracerouteColorMap.get(index);
                         coloredcell.colSpan = 6
-                     
+
                         for (let ip in data[index]) {
 
                             var row = dataTable.insertRow(-1);
                             row.className = 'tableRow';
-                            var ipadrcell = row.insertCell(0);
-                            var nodeidcell = row.insertCell(1);
-                            var latcell = row.insertCell(2);
-                            var longcell = row.insertCell(3);
-                            var asnumcell = row.insertCell(4);
-                            var asnumcolorcell = row.insertCell(5);
-                            var hostnamecell = row.insertCell(6);
-                            var methodcell = row.insertCell(7);
+                            var xcell = row.insertCell(0);
+                            var ipadrcell = row.insertCell(1);
+                            var nodeidcell = row.insertCell(2);
+                            var latcell = row.insertCell(3);
+                            var longcell = row.insertCell(4);
+                            var asnumcell = row.insertCell(5);
+                            var asnumcolorcell = row.insertCell(6);
+                            var hostnamecell = row.insertCell(7);
+                            var methodcell = row.insertCell(8);
                             ipadrcell.innerHTML = data[index][ip]['ip'];
                             nodeidcell.innerHTML = data[index][ip]['nodeid'];
                             latcell.innerHTML = data[index][ip]['coordinates'].split(',')[0];
@@ -484,8 +942,8 @@
 
             map = new google.maps.Map(document.getElementById("map_canvas"), {
                 restriction: {
-                latLngBounds: BOUNDS,
-                strictBounds: false,
+                    latLngBounds: BOUNDS,
+                    strictBounds: false,
                 },
                 zoom: 3,
                 center: new google.maps.LatLng(35.994033, -78.898619)
@@ -494,25 +952,40 @@
 
         }
     </script>
-    
+
     <!-- <link rel="stylesheet" type="text/css" href="style.css" /> -->
 
 </head>
 
 <body style="margin:0px; padding:0px;" onload="initialize()">
 
-    <div class="sideDisplay" >
-        <table id = "InfoTable">
-            <tr class = "tableHeader">
+    <div class="sideDisplay">
 
+
+
+        <table id="InfoTable">
+            <tr>
+                <td> <label class="switch">
+                        <input type="checkbox" id="colorSwitch">
+                        <span class="slider"></span>
+                    </label>
+                </td>
+            </tr>
+            <tr class="tableHeader">
+
+                <td><label class="switch">
+                        <input type="checkbox" id="toggleSwitch">
+                        <span class="slider"></span>
+                    </label>
+                </td>
                 <td>IP Address</td>
                 <td>Node ID</td>
                 <td>Latitude</td>
                 <td>Longitude</td>
-                <td colspan = 2>AS Number</td>
+                <td colspan=2>AS Number</td>
                 <td>Hostname</td>
                 <td>Method</td>
-                
+
             </tr>
         </table>
         <!-- <a id = "sideInfo"></a> -->
